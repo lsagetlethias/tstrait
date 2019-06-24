@@ -1,0 +1,10 @@
+{
+  "extends": [
+    "@wynd/tslint-config-wynd"
+  ],
+  "rules": {
+    "no-boolean-literal-compare": false,
+    "no-unused-variable": false,
+    "deprecation": false
+  }
+}

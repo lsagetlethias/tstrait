@@ -1,0 +1,7 @@
+node_modules/
+coverage/
+!/.vscode/
+/.vscode/*
+!/.vscode/launch.json
+!/.vscode/settings.json
+!/.vscode/tasks.json
