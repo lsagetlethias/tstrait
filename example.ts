@@ -1,10 +1,12 @@
 // tslint:disable:no-shadowed-variable
 // tslint:disable:no-console
-import { Trait, TraitConfig, traitSelector, Use } from './trait';
+import { Trait, traitSelector, Use } from './trait';
 
 // Setup
 class GetImageTrait extends Trait {
     public static INSTANCE = 'toto';
+    public static S1 = 'Static1';
+    public static S2 = 'Static2';
     public getImage(p1?: string, p2 = true) {
         console.log('GetImageTrait.getImage');
         // i.e. make a request to retrieve an image
@@ -64,6 +66,7 @@ console.log('\n\n======= EXAMPLE 3');
             // can use the helper method as selector
             // scope is not handled yet
             [traitSelector(GetImageTrait, 'INSTANCE', true)]: 'protected III',
+            'GetImageTrait::S2': 'S3',
         },
         insteadOf: {
             // or do the selector ourselves (only in non-obfuscated code)
@@ -88,3 +91,8 @@ console.log('\n--------');
 
 console.log('should log "ComputeTrait.getImage"');
 controller3.getImage(); // should log "ComputeTrait.getImage"
+
+console.log('\n--------');
+
+console.log('should log "Static2"');
+console.log((Controller3 as any).S3); // should log "Static2"

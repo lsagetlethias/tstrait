@@ -248,6 +248,15 @@ function traitConfigParser(config: TraitConfig, traits: Array<typeof Trait>) {
         const [klass, oldName, isStatic] = selectorParser(selector);
         const [scope, newName] = changeAsParser(changeAs);
 
+        const traitForName = traits.filter(t => t.name === klass)[0];
+        if (isStatic && typeof traitForName[newName] !== 'undefined') {
+            throw new Error(
+                `Collision on "as" trait rule. "${klass}.${newName}" (static) already exists and can't be overlap.`,
+            );
+        } else if (!isStatic && typeof traitForName.prototype[newName] !== 'undefined') {
+            throw new Error(`Collision on "as" trait rule. "${klass}.${newName}" already exists and can't be overlap.`);
+        }
+
         ret.push({
             isStatic,
             klass,
