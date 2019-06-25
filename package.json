@@ -2,7 +2,7 @@
   "name": "trait",
   "version": "1.0.0",
   "description": "Trait is a better mixin",
-  "main": "dist/index.js",
+  "main": "trait.js",
   "types": "index.d.ts",
   "repository": "git@github.com:bios21/trait.git",
   "homepage": "https://github.com/bios21/trait",
@@ -14,10 +14,7 @@
   "scripts": {
     "test": "jest",
     "lint": "tslint --project tsconfig.base.json -c tslint.json '{src,test}/**/*.ts*'",
-    "_webpack": "TS_NODE_PROJECT=\"config/webpack/tsconfig.json\" webpack --config config/webpack/webpack.config.ts",
-    "start": "ts-node -P tsconfig.json ./example.ts",
-    "build": "rimraf dist/* && yarn _webpack --env production -p --config-name build",
-    "build:dev": "rimraf dist/* && yarn _webpack --env development --config-name build",
+    "build": "rimraf trait.js* && tsc -d trait.ts",
     "doc": "rimraf doc/* && typedoc src/",
     "pub:dev": "yarn build:dev && wsc pub:dev --no-build",
     "pub": "wsc pub"
@@ -25,6 +22,13 @@
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
   },
+  "files": [
+    "UPGRADE*",
+    "CHANGELOG*",
+    "index.d.ts",
+    "trait.d.ts",
+    "trait.js"
+  ],
   "devDependencies": {
     "@types/jest": "^24.0.11",
     "@types/node": "^10.11.3",

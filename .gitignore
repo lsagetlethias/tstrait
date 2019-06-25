@@ -5,3 +5,5 @@ coverage/
 !/.vscode/launch.json
 !/.vscode/settings.json
 !/.vscode/tasks.json
+trait.d.ts
+trait.js
