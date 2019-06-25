@@ -1,6 +1,10 @@
 //#region Helper types
 type Ctor<T = Trait> = new (...args: any[]) => T;
-type MultipleClass<
+
+/**
+ * Fuse multiple class instance with the first one. The final constructor will always be from the first type.
+ */
+type MultipleClassInstance<
     A extends Ctor,
     B extends Ctor,
     C extends Ctor,
@@ -23,19 +27,38 @@ type MultipleClass<
     InstanceType<I> &
     InstanceType<J> &
     InstanceType<K>;
+
+/**
+ * Combine multiple trait to a class. (with instance properties and static properties)
+ */
 type CombinedClass<
-    A extends Ctor,
-    B extends Ctor,
-    C extends Ctor = Ctor,
-    D extends Ctor = Ctor,
-    E extends Ctor = Ctor,
-    F extends Ctor = Ctor,
-    G extends Ctor = Ctor,
-    H extends Ctor = Ctor,
-    I extends Ctor = Ctor,
-    J extends Ctor = Ctor,
-    K extends Ctor = Ctor
-> = MultipleClass<A, B, C, D, E, F, G, H, I, J, K> & A & B & C & D & E & F & G & H & I & J & K;
+    Class extends Ctor,
+    T1 extends typeof Trait,
+    T2 extends typeof Trait = typeof Trait,
+    T3 extends typeof Trait = typeof Trait,
+    T4 extends typeof Trait = typeof Trait,
+    T5 extends typeof Trait = typeof Trait,
+    T6 extends typeof Trait = typeof Trait,
+    T7 extends typeof Trait = typeof Trait,
+    T8 extends typeof Trait = typeof Trait,
+    T9 extends typeof Trait = typeof Trait,
+    T10 extends typeof Trait = typeof Trait
+> = MultipleClassInstance<Class, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> &
+    Class &
+    T1 &
+    T2 &
+    T3 &
+    T4 &
+    T5 &
+    T6 &
+    T7 &
+    T8 &
+    T9 &
+    T10;
+
+/**
+ * The annotion return decorator function.
+ */
 type UseReturnType<
     T1 extends typeof Trait,
     T2 extends typeof Trait = typeof Trait,
@@ -48,6 +71,36 @@ type UseReturnType<
     T9 extends typeof Trait = typeof Trait,
     T10 extends typeof Trait = typeof Trait
 > = <C extends Ctor>(clazz: C) => CombinedClass<C, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>;
+
+// WIP
+// "OldName" fetch the name to change as string literal for each "As" configured
+// "NewName" fetch the name to use as string literal for each "As" configured
+// "Change" build a new type object with a prop/method name replacement
+// tslint:disable-next-line:class-name
+interface As__WIP<T extends typeof Trait, STATIC extends boolean = false> {
+    [NAME: string]: {
+        encapsulation?: 'public' | 'private' | 'protected';
+        name: STATIC extends true ? keyof Omit<T, 'prototype'> : STATIC extends false ? keyof InstanceType<T> : never;
+        newName: string;
+    };
+}
+type OldName<T> = T extends { as: { [P: string]: { name: infer U } } } ? (U extends string ? U : never) : never;
+type NewName<T> = T extends { as: { [P: string]: { newName: infer U } } } ? (U extends string ? U : never) : never;
+type Change<T, CONF> = Omit<T, OldName<CONF>> & { [K in NewName<CONF>]: T[OldName<CONF>] };
+
+interface As {
+    [NAME: string]: string;
+}
+
+interface InsteadOf {
+    [NAME: string]: Array<typeof Trait>;
+}
+
+export interface TraitConfig {
+    insteadOf?: InsteadOf;
+    as?: As;
+}
+
 //#endregion
 
 /**
@@ -59,6 +112,16 @@ export class Trait {
 
 export type TraitPropSelector = string;
 
+/**
+ * Produce a token depending of the property/method selected.
+ * e.g.
+ * ```ts
+ *  class Trait {
+ *      public static STATIC_METHOD; // Will produce this token: `Trait::STATIC_METHOD`
+ *      public instanceProp; // Will produce this token: `Trait.instanceProp`
+ *  }
+ * ```
+ */
 export function traitSelector<
     T extends typeof Trait,
     NAME extends STATIC extends true ? keyof Omit<T, 'prototype'> : keyof InstanceType<T>,
@@ -68,29 +131,134 @@ export function traitSelector<
     if (staticProp) {
         if (((name as unknown) as string) in trait) return `${traitName}::${name}`;
         throw new Error(
-            `Error on TraitSelector. Static member "${name}" was not found in trait ${traitName} or is not public.`,
+            `Error on TraitSelector. Static member "${name}" was not found in trait "${traitName}", or is not instanciated, or is not public.`,
         );
     }
 
     if (((name as unknown) as string) in trait.prototype) return `${traitName}.${name}`;
-    throw new Error(`Error on TraitSelector. Member "${name}" was not found in trait ${traitName} or is not public.`);
+    throw new Error(`Error on TraitSelector. Member "${name}" was not found in trait "${traitName}" or is not public.`);
 }
 
-interface As<T extends typeof Trait, STATIC extends boolean = false> {
-    [NAME: string]: {
-        encapsulation?: 'public' | 'private' | 'protected';
-        name: STATIC extends true ? keyof Omit<T, 'prototype'> : STATIC extends false ? keyof InstanceType<T> : never;
-        newName: string;
-    };
+type Scope = 'public' | 'protected' | 'private';
+
+interface AsRule {
+    rule: 'as';
+    klass: string;
+    oldName: string;
+    newName: string;
+    isStatic: boolean;
+    scope: Scope;
 }
 
-interface InsteadOf {
-    [NAME: string]: TraitPropSelector;
+interface InsteadOfRule {
+    rule: 'insteadof';
+    klassFrom: string;
+    klassTo: string[];
+    name: string;
+    isStatic: boolean;
+}
+type TraitRules = Array<AsRule | InsteadOfRule>;
+
+const SCOPES = ['public', 'protected', 'private'];
+const NAME_REGEX = /^([a-zA-Z_]\w*)*$/i;
+function isScope(scope: string): scope is Scope {
+    return SCOPES.includes(scope);
 }
 
-export interface TraitConfig<T extends typeof Trait = any, STATIC extends boolean = false> {
-    insteadOf?: InsteadOf;
-    as?: As<T, STATIC>;
+function traitConfigParser(config: TraitConfig, traits: Array<typeof Trait>) {
+    const ret: TraitRules = [];
+
+    function selectorParser(selector: TraitPropSelector = ''): [string, string, boolean] {
+        const isStatic = selector.includes('::');
+        const parts = selector.split(isStatic ? '::' : '.');
+
+        if (parts.length !== 2) {
+            throw new Error(
+                `The selector "${selector}" is malformed and should be either "<class>.<propOrMethod>" or "<class>::<staticPropOrMethod>".`,
+            );
+        }
+
+        const [klass, name] = parts;
+        const t = traits.filter(trait => trait.name === klass)[0];
+        if (isStatic && !t[name]) {
+            throw new Error(
+                `In selector "${selector}", the static property or method "${name}" was not found on the trait "${klass}".`,
+            );
+        } else if (!isStatic && !t.prototype[name]) {
+            throw new Error(
+                `In selector "${selector}", the property or method "${name}" was not found on the trait "${klass}" prototype.`,
+            );
+        }
+
+        return [klass, name, isStatic];
+    }
+
+    function changeAsParser(changeAs = ''): [Scope, string] {
+        const parts = changeAs.split(' ');
+        let scope: Scope = null;
+        const part = parts[0];
+        let name = parts[1];
+        if (parts.length === 1) {
+            // if only one part is found, can be a scope or a name
+            if (isScope(part)) {
+                scope = part;
+                name = null;
+            } else {
+                name = part;
+            }
+        } else if (parts.length === 2) {
+            // if two parts are found, will be `<scope> <name>`
+            if (!isScope(part)) {
+                throw new Error(
+                    `In the "as"-part "${changeAs}", the scope have to be one of these: ${SCOPES.join(', ')}`,
+                );
+            }
+            scope = part;
+            if (!NAME_REGEX.test(name)) {
+                throw new Error(
+                    `In the "as"-part "${changeAs}", the name "${name}" is not a valid property not method name. It should respect the following regex: "${NAME_REGEX}"`,
+                );
+            }
+        } else {
+            throw new Error(
+                `The "as"-part "${changeAs}" is not valid and should be like "<scope> <name>", or "<scope>", or "<name>" instead. (e.g. "public myProp")`,
+            );
+        }
+
+        return [scope, name];
+    }
+
+    // handle 'InsteadOf'
+    const insteadOf = config.insteadOf || {};
+    for (const [selector, ioTraits] of Object.entries(insteadOf)) {
+        const [klassFrom, name, isStatic] = selectorParser(selector);
+
+        ret.push({
+            isStatic,
+            klassFrom,
+            name,
+            klassTo: ioTraits.map(t => t.name),
+            rule: 'insteadof',
+        });
+    }
+
+    // handle 'As'
+    const as = config.as || {};
+    for (const [selector, changeAs] of Object.entries(as)) {
+        const [klass, oldName, isStatic] = selectorParser(selector);
+        const [scope, newName] = changeAsParser(changeAs);
+
+        ret.push({
+            isStatic,
+            klass,
+            newName,
+            oldName,
+            scope,
+            rule: 'as',
+        });
+    }
+
+    return ret;
 }
 
 //#region Variant signatures
@@ -111,9 +279,7 @@ export function Use<T extends typeof Trait>(traits: T): UseReturnType<T>;
  *
  * @annotation
  */
-export function Use<C extends TraitConfig<any, STATIC>, T1 extends typeof Trait, STATIC extends boolean = false>(
-    traits: [T1, C?],
-): UseReturnType<T1>;
+export function Use<T1 extends typeof Trait>(traits: [T1, TraitConfig?]): UseReturnType<T1>;
 /**
  * Implements the "use" keyword from PHP with two `Trait` and with an optionnal config.
  *
@@ -122,12 +288,9 @@ export function Use<C extends TraitConfig<any, STATIC>, T1 extends typeof Trait,
  *
  * @annotation
  */
-export function Use<
-    C extends TraitConfig<any, STATIC>,
-    T1 extends typeof Trait,
-    T2 extends typeof Trait,
-    STATIC extends boolean = false
->(traits: [T1, T2, C?]): UseReturnType<T1, T2>;
+export function Use<T1 extends typeof Trait, T2 extends typeof Trait>(
+    traits: [T1, T2, TraitConfig?],
+): UseReturnType<T1, T2>;
 /**
  * Implements the "use" keyword from PHP with three `Trait` and with an optionnal config.
  *
@@ -136,13 +299,9 @@ export function Use<
  *
  * @annotation
  */
-export function Use<
-    C extends TraitConfig<any, STATIC>,
-    T1 extends typeof Trait,
-    T2 extends typeof Trait,
-    T3 extends typeof Trait,
-    STATIC extends boolean = false
->(traits: [T1, T2, T3, C?]): UseReturnType<T1, T2, T3>;
+export function Use<T1 extends typeof Trait, T2 extends typeof Trait, T3 extends typeof Trait>(
+    traits: [T1, T2, T3, TraitConfig?],
+): UseReturnType<T1, T2, T3>;
 /**
  * Implements the "use" keyword from PHP with four `Trait` and with an optionnal config.
  *
@@ -151,14 +310,9 @@ export function Use<
  *
  * @annotation
  */
-export function Use<
-    C extends TraitConfig<any, STATIC>,
-    T1 extends typeof Trait,
-    T2 extends typeof Trait,
-    T3 extends typeof Trait,
-    T4 extends typeof Trait,
-    STATIC extends boolean = false
->(traits: [T1, T2, T3, T4, C?]): UseReturnType<T1, T2, T3, T4>;
+export function Use<T1 extends typeof Trait, T2 extends typeof Trait, T3 extends typeof Trait, T4 extends typeof Trait>(
+    traits: [T1, T2, T3, T4, TraitConfig?],
+): UseReturnType<T1, T2, T3, T4>;
 /**
  * Implements the "use" keyword from PHP with five `Trait` and with an optionnal config.
  *
@@ -168,14 +322,12 @@ export function Use<
  * @annotation
  */
 export function Use<
-    C extends TraitConfig<any, STATIC>,
     T1 extends typeof Trait,
     T2 extends typeof Trait,
     T3 extends typeof Trait,
     T4 extends typeof Trait,
-    T5 extends typeof Trait,
-    STATIC extends boolean = false
->(traits: [T1, T2, T3, T4, T5, C?]): UseReturnType<T1, T2, T3, T4, T5>;
+    T5 extends typeof Trait
+>(traits: [T1, T2, T3, T4, T5, TraitConfig?]): UseReturnType<T1, T2, T3, T4, T5>;
 /**
  * Implements the "use" keyword from PHP with six `Trait` and with an optionnal config.
  *
@@ -185,15 +337,13 @@ export function Use<
  * @annotation
  */
 export function Use<
-    C extends TraitConfig<any, STATIC>,
     T1 extends typeof Trait,
     T2 extends typeof Trait,
     T3 extends typeof Trait,
     T4 extends typeof Trait,
     T5 extends typeof Trait,
-    T6 extends typeof Trait,
-    STATIC extends boolean = false
->(traits: [T1, T2, T3, T4, T5, T6, C?]): UseReturnType<T1, T2, T3, T4, T5, T6>;
+    T6 extends typeof Trait
+>(traits: [T1, T2, T3, T4, T5, T6, TraitConfig?]): UseReturnType<T1, T2, T3, T4, T5, T6>;
 /**
  * Implements the "use" keyword from PHP with seven `Trait` and with an optionnal config.
  *
@@ -203,16 +353,14 @@ export function Use<
  * @annotation
  */
 export function Use<
-    C extends TraitConfig<any, STATIC>,
     T1 extends typeof Trait,
     T2 extends typeof Trait,
     T3 extends typeof Trait,
     T4 extends typeof Trait,
     T5 extends typeof Trait,
     T6 extends typeof Trait,
-    T7 extends typeof Trait,
-    STATIC extends boolean = false
->(traits: [T1, T2, T3, T4, T5, T6, T7, C?]): UseReturnType<T1, T2, T3, T4, T5, T6, T7>;
+    T7 extends typeof Trait
+>(traits: [T1, T2, T3, T4, T5, T6, T7, TraitConfig?]): UseReturnType<T1, T2, T3, T4, T5, T6, T7>;
 /**
  * Implements the "use" keyword from PHP with eight `Trait` and with an optionnal config.
  *
@@ -222,7 +370,6 @@ export function Use<
  * @annotation
  */
 export function Use<
-    C extends TraitConfig<any, STATIC>,
     T1 extends typeof Trait,
     T2 extends typeof Trait,
     T3 extends typeof Trait,
@@ -230,9 +377,8 @@ export function Use<
     T5 extends typeof Trait,
     T6 extends typeof Trait,
     T7 extends typeof Trait,
-    T8 extends typeof Trait,
-    STATIC extends boolean = false
->(traits: [T1, T2, T3, T4, T5, T6, T7, T8, C?]): UseReturnType<T1, T2, T3, T4, T5, T6, T7, T8>;
+    T8 extends typeof Trait
+>(traits: [T1, T2, T3, T4, T5, T6, T7, T8, TraitConfig?]): UseReturnType<T1, T2, T3, T4, T5, T6, T7, T8>;
 /**
  * Implements the "use" keyword from PHP with nine `Trait` and with an optionnal config.
  *
@@ -242,7 +388,6 @@ export function Use<
  * @annotation
  */
 export function Use<
-    C extends TraitConfig<any, STATIC>,
     T1 extends typeof Trait,
     T2 extends typeof Trait,
     T3 extends typeof Trait,
@@ -251,9 +396,8 @@ export function Use<
     T6 extends typeof Trait,
     T7 extends typeof Trait,
     T8 extends typeof Trait,
-    T9 extends typeof Trait,
-    STATIC extends boolean = false
->(traits: [T1, T2, T3, T4, T5, T6, T7, T8, T9, C?]): UseReturnType<T1, T2, T3, T4, T5, T6, T7, T8, T9>;
+    T9 extends typeof Trait
+>(traits: [T1, T2, T3, T4, T5, T6, T7, T8, T9, TraitConfig?]): UseReturnType<T1, T2, T3, T4, T5, T6, T7, T8, T9>;
 /**
  * Implements the "use" keyword from PHP with ten `Trait` and with an optionnal config.
  *
@@ -263,7 +407,6 @@ export function Use<
  * @annotation
  */
 export function Use<
-    C extends TraitConfig<any, STATIC>,
     T1 extends typeof Trait,
     T2 extends typeof Trait,
     T3 extends typeof Trait,
@@ -273,9 +416,10 @@ export function Use<
     T7 extends typeof Trait,
     T8 extends typeof Trait,
     T9 extends typeof Trait,
-    T10 extends typeof Trait,
-    STATIC extends boolean = false
->(traits: [T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, C?]): UseReturnType<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>;
+    T10 extends typeof Trait
+>(
+    traits: [T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TraitConfig?],
+): UseReturnType<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>;
 //#endregion
 /**
  * Implements the "use" keyword from PHP with a `Trait`.
@@ -285,19 +429,60 @@ export function Use<
  *
  * @annotation
  */
-export function Use<C extends TraitConfig<any, STATIC>, T extends typeof Trait, STATIC extends boolean = false>(
-    traits: T | Array<T | C>,
-) {
+export function Use<T extends typeof Trait>(traits: T | Array<T | TraitConfig>) {
     return <Class extends Ctor>(clazz: Class) => {
         if (!Array.isArray(traits)) {
-            const defaultConf: any = {};
+            const defaultConf: TraitConfig = {};
             traits = [traits, defaultConf];
         }
-        const config = traits.pop() as C;
+        const config = traitConfigParser(traits.pop() as TraitConfig, traits as T[]);
 
+        const doNotUse: { [className: string]: Array<[string, boolean]> } = {}; // className [ [prop, isStatic] ]
+        const aliases: { [className: string]: Array<[string, string, boolean]> } = {}; // className [ [prop, alias, isStatic] ]
+
+        for (const rule of config) {
+            if (rule.rule === 'insteadof') {
+                for (const to of rule.klassTo) {
+                    if (!doNotUse[to]) {
+                        doNotUse[to] = [];
+                    }
+                    doNotUse[to].push([rule.name, rule.isStatic]);
+                }
+            } else {
+                // TODO: handle scope
+                if (!aliases[rule.klass]) {
+                    aliases[rule.klass] = [];
+                }
+                aliases[rule.klass].push([rule.oldName, rule.newName, rule.isStatic]);
+            }
+        }
         for (const trait of traits as T[]) {
-            copyProperties(clazz, trait);
-            copyProperties(clazz.prototype, trait.prototype);
+            const filters: RegExp[] = [copyProperties.DEFAULT_FILTER];
+            const filtersStatic: RegExp[] = [copyProperties.DEFAULT_FILTER];
+            const dnu = doNotUse[trait.name] || [];
+
+            for (const [name, isStatic] of dnu) {
+                (isStatic ? filtersStatic : filters).push(new RegExp(name));
+            }
+
+            const traitClone = {};
+            const traitProtoClone = {};
+            copyProperties(traitClone, trait);
+            copyProperties(traitProtoClone, trait.prototype);
+
+            const al = aliases[trait.name] || [];
+            for (const [prop, alias, isStatic] of al) {
+                if (isStatic) {
+                    traitClone[alias] = traitClone[prop];
+                    delete traitClone[prop];
+                } else {
+                    traitProtoClone[alias] = traitProtoClone[prop];
+                    delete traitProtoClone[prop];
+                }
+            }
+
+            copyProperties(clazz, al ? traitClone : trait, filtersStatic);
+            copyProperties(clazz.prototype, al ? traitProtoClone : trait.prototype, filters);
         }
 
         return clazz as CombinedClass<Class, T>;
@@ -310,11 +495,11 @@ export function Use<C extends TraitConfig<any, STATIC>, T extends typeof Trait, 
  * @param {T1} target
  * @param {T2} source
  */
-export function copyProperties<T1, T2>(target: T1, source: T2) {
+export function copyProperties<T1, T2>(target: T1, source: T2, filters = [copyProperties.DEFAULT_FILTER]) {
     const ownPropertyNames = Object.getOwnPropertyNames(source);
 
     ownPropertyNames
-        .filter(key => !/(prototype|name|constructor)/.test(key))
+        .filter(key => filters.every(f => !f.test(key)))
         .forEach(key => {
             const desc = Object.getOwnPropertyDescriptor(source, key);
 
@@ -325,3 +510,4 @@ export function copyProperties<T1, T2>(target: T1, source: T2) {
             }
         });
 }
+copyProperties.DEFAULT_FILTER = /(prototype|name|constructor)/;

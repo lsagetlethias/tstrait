@@ -1,9 +1,12 @@
 // tslint:disable:no-shadowed-variable
+// tslint:disable:no-console
 import { Trait, TraitConfig, traitSelector, Use } from './trait';
 
+// Setup
 class GetImageTrait extends Trait {
-    public static INSTANCE = new Image();
-    public getImage(p1?: string, p2 = true): Blob {
+    public static INSTANCE = 'toto';
+    public getImage(p1?: string, p2 = true) {
+        console.log('GetImageTrait.getImage');
         // i.e. make a request to retrieve an image
         return null;
     }
@@ -13,8 +16,14 @@ class ComputeTrait extends Trait {
     public compute() {
         // i.e. compute anything
     }
+
+    public getImage() {
+        console.log('ComputeTrait.getImage');
+    }
 }
 
+// 1. Simple Usage
+console.log('======= EXAMPLE 1');
 @Use(GetImageTrait)
 class Controller {
     public that = (this as unknown) as Controller & GetImageTrait;
@@ -23,18 +32,15 @@ class Controller {
     }
 }
 
+// ----------------
+
 const controller = new Controller();
+console.log('should log "GetImageTrait.getImage"');
 controller.foo();
 
-const config = {
-    as: {
-        [traitSelector(GetImageTrait, 'INSTANCE', true)]: {
-            name: 'getImage',
-            newName: 'III',
-        },
-    },
-} as const;
-const Controller2 = Use([GetImageTrait, ComputeTrait, config])(
+// 2. Function decorator usage for Intellisense
+console.log('\n\n======= EXAMPLE 2');
+const Controller2 = Use([GetImageTrait, ComputeTrait])(
     class Controller2 {
         public foo(this: Controller2 & GetImageTrait) {
             this.getImage();
@@ -42,19 +48,43 @@ const Controller2 = Use([GetImageTrait, ComputeTrait, config])(
     },
 );
 
+// ----------------
+
 const controller2 = new Controller2();
+console.log('should log "GetImageTrait.getImage"');
 controller2.foo();
 
-type OldName<T> = T extends { as: { [P: string]: { name: infer U } } } ? (U extends string ? U : never) : never;
-type NewName<T> = T extends { as: { [P: string]: { newName: infer U } } } ? (U extends string ? U : never) : never;
+// 3 "as" & "insteadof" trait rules
+console.log('\n\n======= EXAMPLE 3');
+@Use([
+    GetImageTrait,
+    ComputeTrait,
+    {
+        as: {
+            // can use the helper method as selector
+            // scope is not handled yet
+            [traitSelector(GetImageTrait, 'INSTANCE', true)]: 'protected III',
+        },
+        insteadOf: {
+            // or do the selector ourselves (only in non-obfuscated code)
+            'ComputeTrait.getImage': [GetImageTrait],
+        },
+    },
+])
+class Controller3 {}
 
-type Change<T, CONF> = Omit<T, OldName<CONF>> & { [K in NewName<CONF>]: T[OldName<CONF>] };
-type C = typeof config;
-type T = Change<GetImageTrait, typeof config>;
+// ----------------
 
+const controller3: any = new Controller3();
+console.log('should log undefined');
+console.log((Controller3 as any).INSTANCE); // should log undefined
 
-const val: OldName<C> = 'getImage';
+console.log('\n--------');
 
-const az: T = {
+console.log('should log "toto"');
+console.log((Controller3 as any).III); // should log "toto"
 
-};
+console.log('\n--------');
+
+console.log('should log "ComputeTrait.getImage"');
+controller3.getImage(); // should log "ComputeTrait.getImage"

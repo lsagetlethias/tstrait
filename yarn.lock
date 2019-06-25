@@ -4869,7 +4869,7 @@ ts-loader@^5.1.1:
     micromatch "^3.1.4"
     semver "^5.0.1"
 
-ts-node@^8.0.3:
+ts-node@^8.0.3, ts-node@^8.3.0:
   version "8.3.0"
   resolved "https://registry.yarnpkg.com/ts-node/-/ts-node-8.3.0.tgz#e4059618411371924a1fb5f3b125915f324efb57"
   integrity sha512-dyNS/RqyVTDcmNM4NIBAeDMpsAdaQ+ojdf0GOLqE6nwJOgzEkdRNzJywhDfwnuvB10oa6NLVG1rUJQCpRN7qoQ==
