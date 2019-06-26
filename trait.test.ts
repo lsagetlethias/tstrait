@@ -53,6 +53,16 @@ it('should works as function decorator', () => {
     expect(controller.foo()).toBe(GETIMAGETRAIT_GETIMAGE);
 });
 
+it('should not override class members', () => {
+    @Use(GetImageTrait)
+    class Controller {
+        public getImage() {
+            return 'foo';
+        }
+    }
+    expect(new Controller().getImage()).toBe('foo');
+});
+
 describe('traitSelector()', () => {
     it('should produce a valid token', () => {
         expect(traitSelector(GetImageTrait, 'getImage')).toBe('GetImageTrait.getImage');

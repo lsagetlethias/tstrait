@@ -537,7 +537,7 @@ export function copyProperties<T1, T2>(target: T1, source: T2, filters = [copyPr
     const ownPropertyNames = Object.getOwnPropertyNames(source);
 
     ownPropertyNames
-        .filter(key => filters.every(f => !f.test(key)))
+        .filter(key => filters.every(f => !f.test(key)) && typeof target[key] === 'undefined')
         .forEach(key => {
             const desc = Object.getOwnPropertyDescriptor(source, key);
 
