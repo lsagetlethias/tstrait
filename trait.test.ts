@@ -17,6 +17,7 @@ class GetImageTrait extends Trait {
 }
 
 class ComputeTrait extends Trait {
+    public static INSTANCE = 'bar';
     public compute() {
         return COMPUTETRAIT_COMPUTE;
     }
@@ -71,15 +72,15 @@ describe('Trait rules', () => {
             ComputeTrait,
             {
                 as: {
-                    [traitSelector(GetImageTrait, 'INSTANCE', true)]: 'protected FOO',
+                    [traitSelector(GetImageTrait, 'S1', true)]: 'protected FOO',
                     'GetImageTrait::S2': 'S3',
                 },
             },
         ])
         class Controller {}
 
-        expect((Controller as any).INSTANCE).toBeUndefined();
-        expect((Controller as any).FOO).toBe('foo');
+        expect((Controller as any).S1).toBeUndefined();
+        expect((Controller as any).FOO).toBe('Static1');
         expect((Controller as any).S2).toBeUndefined();
         expect((Controller as any).S3).toBe('Static2');
     });
@@ -303,11 +304,37 @@ describe('Trait rules', () => {
                 {
                     insteadOf: {
                         'ComputeTrait.getImage': [GetImageTrait],
+                        'ComputeTrait::INSTANCE': [GetImageTrait],
                     },
                 },
             ])
             class Controller {}
             expect((new Controller() as any).getImage()).toBe(COMPUTETRAIT_GETIMAGE);
+            expect((Controller as any).INSTANCE).toBe('bar');
+        });
+
+        it('should works with an empty config', () => {
+            @Use([
+                GetImageTrait,
+                {
+                    insteadOf: {},
+                },
+            ])
+            class Controller {}
+            expect((new Controller() as any).getImage()).toBe(GETIMAGETRAIT_GETIMAGE);
+        });
+
+        it('should throws with an weird config', () => {
+            expect(
+                Use([
+                    GetImageTrait,
+                    {
+                        insteadOf: {
+                            'GetImageTrait.getImage': null,
+                        },
+                    },
+                ]),
+            ).toThrow();
         });
     });
 });

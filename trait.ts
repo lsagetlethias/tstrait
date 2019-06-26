@@ -509,8 +509,8 @@ export function Use<T extends typeof Trait>(traits: T | Array<T | TraitConfig>) 
                 }
             }
 
-            copyProperties(clazz, al ? traitClone : trait, filtersStatic);
-            copyProperties(clazz.prototype, al ? traitProtoClone : trait.prototype, filters);
+            copyProperties(clazz, al.length ? traitClone : trait, filtersStatic);
+            copyProperties(clazz.prototype, al.length ? traitProtoClone : trait.prototype, filters);
         }
 
         return clazz as CombinedClass<Class, T>;
