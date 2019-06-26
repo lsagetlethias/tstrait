@@ -10,6 +10,18 @@ yarn add tstrait
 npm install tstrait
 ```
 
+## Deno
+```ts
+// /!\ Not registered yet in the global deno registry /!\
+// in you deps.ts
+export * as tstait from 'https://raw.githubusercontent.com/bios21/tstrait/master/mod.ts';
+
+// in your main.ts
+import { tstrait } from './mod.ts';
+
+const { Trait, Use } = tstrait;
+```
+
 # Example
 You can run the example with the command `yarn start` (or `npm run start`)
 

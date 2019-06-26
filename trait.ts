@@ -165,10 +165,10 @@ function isScope(scope: string): scope is Scope {
     return SCOPES.includes(scope);
 }
 
-function traitConfigParser(config: TraitConfig, traits: Array<typeof Trait>) {
+function traitConfigParser(config: TraitConfig, traits: Array<typeof Trait>, target: Ctor) {
     const ret: TraitRules = [];
 
-    function selectorParser(selector: TraitPropSelector = ''): [string, string, boolean] {
+    function selectorParser(selector: TraitPropSelector): [string, string, boolean] {
         const isStatic = selector.includes('::');
         const parts = selector.split(isStatic ? '::' : '.');
 
@@ -193,7 +193,7 @@ function traitConfigParser(config: TraitConfig, traits: Array<typeof Trait>) {
         return [klass, name, isStatic];
     }
 
-    function changeAsParser(changeAs = ''): [Scope, string] {
+    function changeAsParser(changeAs: string): [Scope, string] {
         const parts = changeAs.split(' ');
         let scope: Scope = null;
         const part = parts[0];
@@ -214,14 +214,15 @@ function traitConfigParser(config: TraitConfig, traits: Array<typeof Trait>) {
                 );
             }
             scope = part;
-            if (!NAME_REGEX.test(name)) {
-                throw new Error(
-                    `In the "as"-part "${changeAs}", the name "${name}" is not a valid property not method name. It should respect the following regex: "${NAME_REGEX}"`,
-                );
-            }
         } else {
             throw new Error(
                 `The "as"-part "${changeAs}" is not valid and should be like "<scope> <name>", or "<scope>", or "<name>" instead. (e.g. "public myProp")`,
+            );
+        }
+
+        if (name !== null && !NAME_REGEX.test(name)) {
+            throw new Error(
+                `In the "as"-part "${changeAs}", the name "${name}" is not a valid property not method name. It should respect the following regex: "${NAME_REGEX}"`,
             );
         }
 
@@ -248,13 +249,31 @@ function traitConfigParser(config: TraitConfig, traits: Array<typeof Trait>) {
         const [klass, oldName, isStatic] = selectorParser(selector);
         const [scope, newName] = changeAsParser(changeAs);
 
+        if (newName === null) continue; // WIP Handle scope
+
         const traitForName = traits.filter(t => t.name === klass)[0];
-        if (isStatic && typeof traitForName[newName] !== 'undefined') {
-            throw new Error(
-                `Collision on "as" trait rule. "${klass}.${newName}" (static) already exists and can't be overlap.`,
-            );
-        } else if (!isStatic && typeof traitForName.prototype[newName] !== 'undefined') {
-            throw new Error(`Collision on "as" trait rule. "${klass}.${newName}" already exists and can't be overlap.`);
+        if (isStatic) {
+            if (typeof traitForName[newName] !== 'undefined') {
+                throw new Error(
+                    `Collision on "as" trait rule. "${klass}.${newName}" (static) already exists and can't be overlap.`,
+                );
+            } else if (typeof target[newName] !== 'undefined') {
+                throw new Error(
+                    `Collision on "as" trait rule. "${
+                        target.name
+                    }.${newName}" (static) already exists and can't be overlap.`,
+                );
+            }
+        } else {
+            if (typeof traitForName.prototype[newName] !== 'undefined') {
+                throw new Error(
+                    `Collision on "as" trait rule. "${klass}.${newName}" already exists and can't be overlap.`,
+                );
+            } else if (typeof target.prototype[newName] !== 'undefined') {
+                throw new Error(
+                    `Collision on "as" trait rule. "${target.name}.${newName}" already exists and can't be overlap.`,
+                );
+            }
         }
 
         ret.push({
@@ -444,7 +463,7 @@ export function Use<T extends typeof Trait>(traits: T | Array<T | TraitConfig>) 
             const defaultConf: TraitConfig = {};
             traits = [traits, defaultConf];
         }
-        const config = traitConfigParser(traits.pop() as TraitConfig, traits as T[]);
+        const config = traitConfigParser(traits.pop() as TraitConfig, traits as T[], clazz);
 
         const doNotUse: { [className: string]: Array<[string, boolean]> } = {}; // className [ [prop, isStatic] ]
         const aliases: { [className: string]: Array<[string, string, boolean]> } = {}; // className [ [prop, alias, isStatic] ]
