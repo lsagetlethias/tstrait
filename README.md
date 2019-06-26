@@ -26,7 +26,7 @@ const { Trait, Use } = tstrait;
 You can run the example with the command `yarn start` (or `npm run start`)
 
 ```ts
-import { Trait, traitSelector, Use } from './trait';
+import { Trait, traitSelector, Use } from 'tstrait';
 
 // Setup
 class GetImageTrait extends Trait {

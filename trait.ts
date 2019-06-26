@@ -110,7 +110,7 @@ export class Trait {
     private static __TRAITED;
 }
 
-export type TraitPropSelector = string;
+export type TraitMemberSelector = string;
 
 /**
  * Produce a token depending of the property/method selected.
@@ -121,14 +121,18 @@ export type TraitPropSelector = string;
  *      public instanceProp; // Will produce this token: `Trait.instanceProp`
  *  }
  * ```
+ *
+ * @param trait The trait in which the member name will be selected
+ * @param name  The member name itself. Intellisense will provide you a correct list to avoid mistakes
+ * @param staticMember If the member to select is static.
  */
 export function traitSelector<
     T extends typeof Trait,
     NAME extends STATIC extends true ? keyof Omit<T, 'prototype'> : keyof InstanceType<T>,
     STATIC extends boolean = false
->(trait: T, name: NAME, staticProp?: STATIC): TraitPropSelector {
+>(trait: T, name: NAME, staticMember?: STATIC): TraitMemberSelector {
     const traitName = trait.name;
-    if (staticProp) {
+    if (staticMember) {
         if (((name as unknown) as string) in trait) return `${traitName}::${name}`;
         throw new Error(
             `Error on TraitSelector. Static member "${name}" was not found in trait "${traitName}", or is not instanciated, or is not public.`,
@@ -165,10 +169,15 @@ function isScope(scope: string): scope is Scope {
     return SCOPES.includes(scope);
 }
 
+/**
+ * Validate and parse the TraitConfig.
+ *
+ * @internal
+ */
 function traitConfigParser(config: TraitConfig, traits: Array<typeof Trait>, target: Ctor) {
     const ret: TraitRules = [];
 
-    function selectorParser(selector: TraitPropSelector): [string, string, boolean] {
+    function selectorParser(selector: TraitMemberSelector): [string, string, boolean] {
         const isStatic = selector.includes('::');
         const parts = selector.split(isStatic ? '::' : '.');
 
@@ -499,13 +508,13 @@ export function Use<T extends typeof Trait>(traits: T | Array<T | TraitConfig>) 
             copyProperties(traitProtoClone, trait.prototype);
 
             const al = aliases[trait.name] || [];
-            for (const [prop, alias, isStatic] of al) {
+            for (const [member, alias, isStatic] of al) {
                 if (isStatic) {
-                    traitClone[alias] = traitClone[prop];
-                    delete traitClone[prop];
+                    traitClone[alias] = traitClone[member];
+                    delete traitClone[member];
                 } else {
-                    traitProtoClone[alias] = traitProtoClone[prop];
-                    delete traitProtoClone[prop];
+                    traitProtoClone[alias] = traitProtoClone[member];
+                    delete traitProtoClone[member];
                 }
             }
 
@@ -520,8 +529,9 @@ export function Use<T extends typeof Trait>(traits: T | Array<T | TraitConfig>) 
 /**
  * Copy param from a `source` into the `target`.
  *
- * @param {T1} target
- * @param {T2} source
+ * Used to properly mix class with prototypes and statics members.
+ *
+ * @param filters An array of regexp to omit some members to be copied. (/(prototype|name|constructor)/ by default).
  */
 export function copyProperties<T1, T2>(target: T1, source: T2, filters = [copyProperties.DEFAULT_FILTER]) {
     const ownPropertyNames = Object.getOwnPropertyNames(source);
