@@ -1,4 +1,4 @@
-tstrait
+@bios21/tstrait
 ===
 Yet another mixin library but without mixins.
 
@@ -13,9 +13,9 @@ They can be usefull in override situations.
 # Installation
 ## Node (or front)
 ```sh
-yarn add tstrait
+yarn add @bios21/tstrait
 # or
-npm install tstrait
+npm install @bios21/tstrait
 ```
 
 ## Deno
@@ -117,7 +117,7 @@ class Foo {}
 You can run the example with the command `yarn start` (or `npm run start`)
 
 ```ts
-import { Trait, traitSelector, Use } from 'tstrait';
+import { Trait, traitSelector, Use } from '@bios21/tstrait';
 
 // Setup
 class GetImageTrait extends Trait {
