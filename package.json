@@ -1,5 +1,5 @@
 {
-  "name": "trait",
+  "name": "tstrait",
   "version": "1.0.0",
   "description": "Trait is a better mixin",
   "main": "trait.js",
