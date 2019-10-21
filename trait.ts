@@ -1,5 +1,5 @@
 //#region Helper types
-type Ctor<T = Trait> = new (...args: any[]) => T;
+export type Ctor<T = Trait> = new (...args: any[]) => T;
 
 /**
  * Fuse multiple class instance with the first one. The final constructor will always be from the first type.
@@ -107,7 +107,7 @@ export interface TraitConfig {
  * Should be used with {{Use}}
  */
 export class Trait {
-    private static __TRAITED;
+    private static __TRAITED: never;
 }
 
 export type TraitMemberSelector = string;
@@ -202,11 +202,11 @@ function traitConfigParser(config: TraitConfig, traits: Array<typeof Trait>, tar
         return [klass, name, isStatic];
     }
 
-    function changeAsParser(changeAs: string): [Scope, string] {
+    function changeAsParser(changeAs: string): [Scope, string | null] {
         const parts = changeAs.split(' ');
-        let scope: Scope = null;
+        let scope: Scope = null!;
         const part = parts[0];
-        let name = parts[1];
+        let name: string | null = parts[1];
         if (parts.length === 1) {
             // if only one part is found, can be a scope or a name
             if (isScope(part)) {
@@ -542,7 +542,7 @@ export function copyProperties<T1, T2>(target: T1, source: T2, filters = [copyPr
             const desc = Object.getOwnPropertyDescriptor(source, key);
 
             try {
-                Object.defineProperty(target, key, desc);
+                Object.defineProperty(target, key, desc!);
             } catch {
                 /* catch for IE11 - no op */
             }

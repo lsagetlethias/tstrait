@@ -1,5 +1,5 @@
 // tslint:disable:no-shadowed-variable
-import { Trait, traitSelector, Use } from './trait';
+import { Trait, traitSelector, Use, Ctor } from './trait';
 
 const GETIMAGETRAIT_GETIMAGE = 'GetImageTrait.getImage';
 const COMPUTETRAIT_COMPUTE = 'ComputeTrait.compute';
@@ -13,7 +13,7 @@ class GetImageTrait extends Trait {
     public getImage(p1?: string, p2 = true) {
         return GETIMAGETRAIT_GETIMAGE;
     }
-    public fn1() {}
+    public fn1() { }
 }
 
 class ComputeTrait extends Trait {
@@ -38,6 +38,26 @@ it('should works with an annotation', () => {
 
     const controller = new Controller();
     expect(controller.foo()).toBe(GETIMAGETRAIT_GETIMAGE);
+});
+
+it('should works with an abstract class', () => {
+    abstract class AbstractController {
+        public that = (this as unknown) as AbstractController & GetImageTrait;
+        public foo() {
+            return this.that.getImage();
+        }
+        public abstract bar(): string;
+    }
+
+    class Controller extends Use(GetImageTrait)(AbstractController as Ctor<AbstractController>) {
+        public bar() {
+            return this.getImage();
+        }
+    }
+
+    const controller = new Controller();
+    expect(controller.foo()).toBe(GETIMAGETRAIT_GETIMAGE);
+    expect(controller.bar()).toBe(GETIMAGETRAIT_GETIMAGE);
 });
 
 it('should works as function decorator', () => {
@@ -87,7 +107,7 @@ describe('Trait rules', () => {
                 },
             },
         ])
-        class Controller {}
+        class Controller { }
 
         expect((Controller as any).S1).toBeUndefined();
         expect((Controller as any).FOO).toBe('Static1');
@@ -146,7 +166,7 @@ describe('Trait rules', () => {
                     },
                 },
             ])
-            class Controller {}
+            class Controller { }
             expect((new Controller() as any).getImage).toBeUndefined();
         });
 
@@ -159,7 +179,7 @@ describe('Trait rules', () => {
                     },
                 },
             ])
-            class Controller {}
+            class Controller { }
             expect((new Controller() as any).foo()).toBe(GETIMAGETRAIT_GETIMAGE);
         });
 
@@ -172,7 +192,7 @@ describe('Trait rules', () => {
                     },
                 },
             ])
-            class Controller {}
+            class Controller { }
             expect((new Controller() as any).getImage()).toBe(GETIMAGETRAIT_GETIMAGE);
         });
 
@@ -245,7 +265,7 @@ describe('Trait rules', () => {
                             'GetImageTrait.getImage': 'fn1',
                         },
                     },
-                ])(class Controller {}),
+                ])(class Controller { }),
             ).toThrow('Collision on "as" trait rule. "GetImageTrait.fn1" already exists and can\'t be overlap.');
 
             // Can't overlap traited class static method
@@ -275,7 +295,7 @@ describe('Trait rules', () => {
                     },
                 ])(
                     class Controller {
-                        public foo() {}
+                        public foo() { }
                     },
                 ),
             ).toThrow('Collision on "as" trait rule. "Controller.foo" already exists and can\'t be overlap.');
@@ -288,7 +308,7 @@ describe('Trait rules', () => {
                     as: {},
                 },
             ])
-            class Controller {}
+            class Controller { }
             expect((new Controller() as any).getImage()).toBe(GETIMAGETRAIT_GETIMAGE);
         });
 
@@ -318,7 +338,7 @@ describe('Trait rules', () => {
                     },
                 },
             ])
-            class Controller {}
+            class Controller { }
             expect((new Controller() as any).getImage()).toBe(COMPUTETRAIT_GETIMAGE);
             expect((Controller as any).INSTANCE).toBe('bar');
         });
@@ -330,7 +350,7 @@ describe('Trait rules', () => {
                     insteadOf: {},
                 },
             ])
-            class Controller {}
+            class Controller { }
             expect((new Controller() as any).getImage()).toBe(GETIMAGETRAIT_GETIMAGE);
         });
 

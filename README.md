@@ -45,9 +45,26 @@ Then you will need the `@Use` decorator to apply your trait on your class. For t
 ```ts
 @Use(MyTrait)
 class Foo {}
+
+const Bar = Use(MyTrait)(class Bar {}); // will be fully typed
 ```
 
 At this point, any `Foo` instance will have a `something()` method for the trait used.
+
+### Regarding traits on Abstract Classes
+Due to typings issues with abstract, abstract classes cannot be traited with decorators. Only straight call of `Use` function can works by emulating a fake public constructor on the abstract class with cast.
+
+e.g.
+```ts
+import { Use, Ctor } from '@bios21/tstrait';
+class MyTrait {}
+
+@Use(MyTrait) // Argument of type 'typeof Foo' is not assignable to parameter of type 'Ctor'. Cannot assign an abstract constructor type to a non-abstract constructor type. ts(2345)
+abstract class Foo {}
+
+abstract class _Bar {}
+const Bar = Use(MyTrait)(_Bar as Ctor<_Bar>); // ok
+```
 
 ## Advanced
 If you need to, you can use as many trait as you want. In this case, the `@Use` will takes an array of trait as single parameter:
