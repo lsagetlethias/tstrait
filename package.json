@@ -33,7 +33,7 @@
     "@types/webpack": "^4.1.3",
     "@wynd/tslint-config-wynd": "^1.5.0",
     "jest": "^24.5.0",
-    "rimraf": "^2.6.2",
+    "rimraf": "^3.0.0",
     "ts-jest": "^24.0.2",
     "ts-node": "^8.3.0",
     "tslint": "^5.9.1",
