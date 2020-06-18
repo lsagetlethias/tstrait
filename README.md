@@ -22,7 +22,7 @@ npm install @bios21/tstrait
 ```ts
 // /!\ Not registered yet in the global deno registry /!\
 // in you deps.ts
-export * as tstait from 'https://raw.githubusercontent.com/bios21/tstrait/master/mod.ts';
+export * as tstait from 'https://raw.githubusercontent.com/lsagetlethias/tstrait/master/mod.ts';
 
 // in your main.ts
 import { tstrait } from './mod.ts';
