@@ -1,9 +1,9 @@
-//@ts-check
+// @ts-check
 /** @type Partial<jest.DefaultOptions> & { [K: string]: any } */
 const config = {
     globals: {
         'ts-jest': {
-            tsConfig: '<rootDir>/tsconfig.json'
+            tsConfig: '<rootDir>/tsconfig.json',
         },
     },
     preset: 'ts-jest',

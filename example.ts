@@ -1,5 +1,5 @@
-// tslint:disable:no-shadowed-variable
-// tslint:disable:no-console
+/* eslint-disable no-console */
+/* eslint-disable no-shadow */
 import { Trait, traitSelector, Use } from './trait';
 
 // Setup
@@ -42,7 +42,10 @@ controller.foo();
 
 // 2. Function decorator usage for Intellisense
 console.log('\n\n======= EXAMPLE 2');
-const Controller2 = Use([GetImageTrait, ComputeTrait])(
+const Controller2 = Use(
+    GetImageTrait,
+    ComputeTrait,
+)(
     class Controller2 {
         public foo(this: Controller2 & GetImageTrait) {
             this.getImage();
@@ -58,22 +61,18 @@ controller2.foo();
 
 // 3 "as" & "insteadof" trait rules
 console.log('\n\n======= EXAMPLE 3');
-@Use([
-    GetImageTrait,
-    ComputeTrait,
-    {
-        as: {
-            // can use the helper method as selector
-            // scope is not handled yet
-            [traitSelector(GetImageTrait, 'INSTANCE', true)]: 'protected III',
-            'GetImageTrait::S2': 'S3',
-        },
-        insteadOf: {
-            // or do the selector ourselves (only in non-obfuscated code)
-            'ComputeTrait.getImage': [GetImageTrait],
-        },
+@Use(GetImageTrait, ComputeTrait, {
+    as: {
+        // can use the helper method as selector
+        // scope is not handled yet
+        [traitSelector(GetImageTrait, 'INSTANCE', true)]: 'protected III',
+        'GetImageTrait::S2': 'S3',
     },
-])
+    insteadOf: {
+        // or do the selector ourselves (only in non-obfuscated code)
+        'ComputeTrait.getImage': [GetImageTrait],
+    },
+})
 class Controller3 {}
 
 // ----------------

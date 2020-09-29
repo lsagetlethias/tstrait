@@ -1,107 +1,45 @@
-//#region Helper types
+// #region Helper types
 export type Ctor<T = Trait> = new (...args: any[]) => T;
+type UnionToIntersection<U> = 
+  (U extends any ? (k: U)=>void : never) extends ((k: infer I)=>void) ? I : never;
+
+type InstanceTypeIntersection<I extends Ctor[]> = UnionToIntersection<InstanceType<I[number]>>;
+type TupleToIntersection<T extends any[]> = UnionToIntersection<T[number]>;
 
 /**
  * Fuse multiple class instance with the first one. The final constructor will always be from the first type.
  */
-type MultipleClassInstance<
-    A extends Ctor,
-    B extends Ctor,
-    C extends Ctor,
-    D extends Ctor,
-    E extends Ctor,
-    F extends Ctor,
-    G extends Ctor,
-    H extends Ctor,
-    I extends Ctor,
-    J extends Ctor,
-    K extends Ctor
-> = new (...args: any[]) => InstanceType<A> &
-    InstanceType<B> &
-    InstanceType<C> &
-    InstanceType<D> &
-    InstanceType<E> &
-    InstanceType<F> &
-    InstanceType<G> &
-    InstanceType<H> &
-    InstanceType<I> &
-    InstanceType<J> &
-    InstanceType<K>;
+type MultipleClassInstance<T extends Ctor[]> = new (...args: any[]) => InstanceTypeIntersection<T>;
 
 /**
  * Combine multiple trait to a class. (with instance properties and static properties)
  */
-type CombinedClass<
-    Class extends Ctor,
-    T1 extends typeof Trait,
-    T2 extends typeof Trait = typeof Trait,
-    T3 extends typeof Trait = typeof Trait,
-    T4 extends typeof Trait = typeof Trait,
-    T5 extends typeof Trait = typeof Trait,
-    T6 extends typeof Trait = typeof Trait,
-    T7 extends typeof Trait = typeof Trait,
-    T8 extends typeof Trait = typeof Trait,
-    T9 extends typeof Trait = typeof Trait,
-    T10 extends typeof Trait = typeof Trait
-> = MultipleClassInstance<Class, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> &
-    Class &
-    T1 &
-    T2 &
-    T3 &
-    T4 &
-    T5 &
-    T6 &
-    T7 &
-    T8 &
-    T9 &
-    T10;
+type CombinedClass<Class extends Ctor, T extends Array<typeof Trait>> = MultipleClassInstance<[Class, ...T]> & Class & TupleToIntersection<T>;
 
 /**
  * The annotion return decorator function.
  */
-type UseReturnType<
-    T1 extends typeof Trait,
-    T2 extends typeof Trait = typeof Trait,
-    T3 extends typeof Trait = typeof Trait,
-    T4 extends typeof Trait = typeof Trait,
-    T5 extends typeof Trait = typeof Trait,
-    T6 extends typeof Trait = typeof Trait,
-    T7 extends typeof Trait = typeof Trait,
-    T8 extends typeof Trait = typeof Trait,
-    T9 extends typeof Trait = typeof Trait,
-    T10 extends typeof Trait = typeof Trait
-> = <C extends Ctor>(clazz: C) => CombinedClass<C, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>;
+type UseReturnType<T extends Array<typeof Trait>> = <C extends Ctor>(clazz: C) => CombinedClass<C, T>;
 
-// WIP
-// "OldName" fetch the name to change as string literal for each "As" configured
-// "NewName" fetch the name to use as string literal for each "As" configured
-// "Change" build a new type object with a prop/method name replacement
-// tslint:disable-next-line:class-name
-interface As__WIP<T extends typeof Trait, STATIC extends boolean = false> {
-    [NAME: string]: {
-        encapsulation?: 'public' | 'private' | 'protected';
-        name: STATIC extends true ? keyof Omit<T, 'prototype'> : STATIC extends false ? keyof InstanceType<T> : never;
-        newName: string;
-    };
-}
-type OldName<T> = T extends { as: { [P: string]: { name: infer U } } } ? (U extends string ? U : never) : never;
-type NewName<T> = T extends { as: { [P: string]: { newName: infer U } } } ? (U extends string ? U : never) : never;
-type Change<T, CONF> = Omit<T, OldName<CONF>> & { [K in NewName<CONF>]: T[OldName<CONF>] };
+type Scope = 'public' | 'protected' | 'private';
+type _GetTraitName<T extends typeof Trait> = { [Name in keyof TraitsRegister]: TraitsRegister[Name] extends T ? T extends TraitsRegister[Name] ? Name : never : never}[keyof TraitsRegister];
+type GetTraitName<T extends typeof Trait> = _GetTraitName<T> extends never ? string : _GetTraitName<T>;
+type Keys<T> = { [K in keyof T]: K extends string ? K extends "prototype" ? never : K : never}[keyof T];
+// eslint-disable-next-line prettier/prettier
+type StaticName<T extends typeof Trait, Name extends GetTraitName<T> = GetTraitName<T>> = `${Name}::${Keys<T>}`;
+type InstanceName<T extends typeof Trait, N extends GetTraitName<T> = GetTraitName<T>> = `${N}.${Keys<InstanceType<T>>}`;
+type Identifier<Traits extends Array<typeof Trait>> = Traits extends Array<infer T> ? T extends typeof Trait ? StaticName<T> | InstanceName<T> : never : never;
 
-interface As {
-    [NAME: string]: string;
-}
+type As<Traits extends Array<typeof Trait>, V extends string = string> =
+    Partial<Record<Identifier<Traits>, `${Scope} ${V}`>> // autocomplete "<class.prop>" and "<class.staticProp>" as key
+    | Partial<Record<string, `${Scope} ${V}`>> // accept any other string as key as well
+    | Partial<Record<string, `${Scope} `>>; // start autocomplete for optional scope
 
-interface InsteadOf {
-    [NAME: string]: Array<typeof Trait>;
-}
+type InsteadOf<Traits extends Array<typeof Trait>, Ids extends Identifier<Traits> = Identifier<Traits>> = {
+    [K in Ids]?: K extends `${infer N}${'::'|'.'}${infer _}` ? N extends keyof TraitsRegister ? Array<Exclude<Traits[number], TraitsRegister[N]>> : never : never // in string key, if a trait name is found, exclude corresponding Trait from "insteadof" possibilities to avoid redundancy
+} | Partial<Record<string, Array<Traits[number]>>>; // accept any other string a key (case when Trait is not registered)
 
-export interface TraitConfig {
-    insteadOf?: InsteadOf;
-    as?: As;
-}
-
-//#endregion
+// #endregion
 
 /**
  * Should be used with {{Use}}
@@ -109,8 +47,36 @@ export interface TraitConfig {
 export class Trait {
     private static __TRAITED: never;
 }
+/**
+ * Register to augment to have proper autocomplete for Traits.
+ * 
+ * Usage:
+ * ```typescript
+ * class MyTrait extends Trait {}
+ * 
+ * declare module "@bios21/tstrait" {
+ *  interface TraitsRegister {
+ *    "MyTrait": typeof MyTrait,
+ *  }
+ * }
+ * // "MyTrait" is now available for autocomplete in any TraitConfig
+ * ```
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+export interface TraitsRegister {}
+export interface TraitConfig<Traits extends Array<typeof Trait>> {
+    insteadOf?: InsteadOf<Traits>;
+    as?: As<Traits>;
+}
 
-export type TraitMemberSelector = string;
+export function isTraitConfig<Traits extends Array<typeof Trait>>(obj: unknown): obj is TraitConfig<Traits> {
+    return typeof obj === "object" && obj !== null && (
+        ("insteadOf" in obj && 
+            typeof (obj as TraitConfig<Traits>).insteadOf === "object")
+        || ("as" in obj && 
+            typeof (obj as TraitConfig<Traits>).as === "object")
+    );
+}
 
 /**
  * Produce a token depending of the property/method selected.
@@ -129,21 +95,20 @@ export type TraitMemberSelector = string;
 export function traitSelector<
     T extends typeof Trait,
     NAME extends STATIC extends true ? keyof Omit<T, 'prototype'> : keyof InstanceType<T>,
-    STATIC extends boolean = false
->(trait: T, name: NAME, staticMember?: STATIC): TraitMemberSelector {
+    STATIC extends boolean = false,
+    N extends GetTraitName<T> = GetTraitName<T>,
+>(trait: T, name: NAME, staticMember?: STATIC): `${N}${STATIC extends true ? "::" : "."}${NAME & string}` {
     const traitName = trait.name;
     if (staticMember) {
-        if (((name as unknown) as string) in trait) return `${traitName}::${name}`;
+        if (((name as unknown) as string) in trait) return `${traitName}::${name}` as any;
         throw new Error(
             `Error on TraitSelector. Static member "${name}" was not found in trait "${traitName}", or is not instanciated, or is not public.`,
         );
     }
 
-    if (((name as unknown) as string) in trait.prototype) return `${traitName}.${name}`;
+    if (((name as unknown) as string) in trait.prototype) return `${traitName}.${name}` as any;
     throw new Error(`Error on TraitSelector. Member "${name}" was not found in trait "${traitName}" or is not public.`);
 }
-
-type Scope = 'public' | 'protected' | 'private';
 
 interface AsRule {
     rule: 'as';
@@ -174,10 +139,10 @@ function isScope(scope: string): scope is Scope {
  *
  * @internal
  */
-function traitConfigParser(config: TraitConfig, traits: Array<typeof Trait>, target: Ctor) {
+function traitConfigParser<Traits extends Array<typeof Trait>, TC extends TraitConfig<Traits>>(config: TC, traits: Traits, target: Ctor) {
     const ret: TraitRules = [];
 
-    function selectorParser(selector: TraitMemberSelector): [string, string, boolean] {
+    function selectorParser(selector: string): [string, string, boolean] {
         const isStatic = selector.includes('::');
         const parts = selector.split(isStatic ? '::' : '.');
 
@@ -202,7 +167,7 @@ function traitConfigParser(config: TraitConfig, traits: Array<typeof Trait>, tar
         return [klass, name, isStatic];
     }
 
-    function changeAsParser(changeAs: string): [Scope, string | null] {
+    function changeAsParser(changeAs: string): [scope: Scope, name: string | null] {
         const parts = changeAs.split(' ');
         let scope: Scope = null!;
         const part = parts[0];
@@ -239,8 +204,7 @@ function traitConfigParser(config: TraitConfig, traits: Array<typeof Trait>, tar
     }
 
     // handle 'InsteadOf'
-    const insteadOf = config.insteadOf || {};
-    for (const [selector, ioTraits] of Object.entries(insteadOf)) {
+    for (const [selector, ioTraits] of Object.entries(config.insteadOf ?? {}) as Array<[string, Traits]>) {
         const [klassFrom, name, isStatic] = selectorParser(selector);
 
         ret.push({
@@ -253,8 +217,7 @@ function traitConfigParser(config: TraitConfig, traits: Array<typeof Trait>, tar
     }
 
     // handle 'As'
-    const as = config.as || {};
-    for (const [selector, changeAs] of Object.entries(as)) {
+    for (const [selector, changeAs] of Object.entries(config.as ?? {}) as Array<[string, string]>) {
         const [klass, oldName, isStatic] = selectorParser(selector);
         const [scope, newName] = changeAsParser(changeAs);
 
@@ -298,166 +261,6 @@ function traitConfigParser(config: TraitConfig, traits: Array<typeof Trait>, tar
     return ret;
 }
 
-//#region Variant signatures
-/**
- * Implements the "use" keyword from PHP with one `Trait` but without config.
- *
- * @param traits The Trait implementation to use.
- * @returns The class "traited"
- *
- * @annotation
- */
-export function Use<T extends typeof Trait>(traits: T): UseReturnType<T>;
-/**
- * Implements the "use" keyword from PHP with one `Trait` and with an optionnal config.
- *
- * @param traits A list of traits followed by a trait config at the last element.
- * @returns The class "traited"
- *
- * @annotation
- */
-export function Use<T1 extends typeof Trait>(traits: [T1, TraitConfig?]): UseReturnType<T1>;
-/**
- * Implements the "use" keyword from PHP with two `Trait` and with an optionnal config.
- *
- * @param traits A list of traits followed by a trait config at the last element.
- * @returns The class "traited"
- *
- * @annotation
- */
-export function Use<T1 extends typeof Trait, T2 extends typeof Trait>(
-    traits: [T1, T2, TraitConfig?],
-): UseReturnType<T1, T2>;
-/**
- * Implements the "use" keyword from PHP with three `Trait` and with an optionnal config.
- *
- * @param traits A list of traits followed by a trait config at the last element.
- * @returns The class "traited"
- *
- * @annotation
- */
-export function Use<T1 extends typeof Trait, T2 extends typeof Trait, T3 extends typeof Trait>(
-    traits: [T1, T2, T3, TraitConfig?],
-): UseReturnType<T1, T2, T3>;
-/**
- * Implements the "use" keyword from PHP with four `Trait` and with an optionnal config.
- *
- * @param traits A list of traits followed by a trait config at the last element.
- * @returns The class "traited"
- *
- * @annotation
- */
-export function Use<T1 extends typeof Trait, T2 extends typeof Trait, T3 extends typeof Trait, T4 extends typeof Trait>(
-    traits: [T1, T2, T3, T4, TraitConfig?],
-): UseReturnType<T1, T2, T3, T4>;
-/**
- * Implements the "use" keyword from PHP with five `Trait` and with an optionnal config.
- *
- * @param traits A list of traits followed by a trait config at the last element.
- * @returns The class "traited"
- *
- * @annotation
- */
-export function Use<
-    T1 extends typeof Trait,
-    T2 extends typeof Trait,
-    T3 extends typeof Trait,
-    T4 extends typeof Trait,
-    T5 extends typeof Trait
->(traits: [T1, T2, T3, T4, T5, TraitConfig?]): UseReturnType<T1, T2, T3, T4, T5>;
-/**
- * Implements the "use" keyword from PHP with six `Trait` and with an optionnal config.
- *
- * @param traits A list of traits followed by a trait config at the last element.
- * @returns The class "traited"
- *
- * @annotation
- */
-export function Use<
-    T1 extends typeof Trait,
-    T2 extends typeof Trait,
-    T3 extends typeof Trait,
-    T4 extends typeof Trait,
-    T5 extends typeof Trait,
-    T6 extends typeof Trait
->(traits: [T1, T2, T3, T4, T5, T6, TraitConfig?]): UseReturnType<T1, T2, T3, T4, T5, T6>;
-/**
- * Implements the "use" keyword from PHP with seven `Trait` and with an optionnal config.
- *
- * @param traits A list of traits followed by a trait config at the last element.
- * @returns The class "traited"
- *
- * @annotation
- */
-export function Use<
-    T1 extends typeof Trait,
-    T2 extends typeof Trait,
-    T3 extends typeof Trait,
-    T4 extends typeof Trait,
-    T5 extends typeof Trait,
-    T6 extends typeof Trait,
-    T7 extends typeof Trait
->(traits: [T1, T2, T3, T4, T5, T6, T7, TraitConfig?]): UseReturnType<T1, T2, T3, T4, T5, T6, T7>;
-/**
- * Implements the "use" keyword from PHP with eight `Trait` and with an optionnal config.
- *
- * @param traits A list of traits followed by a trait config at the last element.
- * @returns The class "traited"
- *
- * @annotation
- */
-export function Use<
-    T1 extends typeof Trait,
-    T2 extends typeof Trait,
-    T3 extends typeof Trait,
-    T4 extends typeof Trait,
-    T5 extends typeof Trait,
-    T6 extends typeof Trait,
-    T7 extends typeof Trait,
-    T8 extends typeof Trait
->(traits: [T1, T2, T3, T4, T5, T6, T7, T8, TraitConfig?]): UseReturnType<T1, T2, T3, T4, T5, T6, T7, T8>;
-/**
- * Implements the "use" keyword from PHP with nine `Trait` and with an optionnal config.
- *
- * @param traits A list of traits followed by a trait config at the last element.
- * @returns The class "traited"
- *
- * @annotation
- */
-export function Use<
-    T1 extends typeof Trait,
-    T2 extends typeof Trait,
-    T3 extends typeof Trait,
-    T4 extends typeof Trait,
-    T5 extends typeof Trait,
-    T6 extends typeof Trait,
-    T7 extends typeof Trait,
-    T8 extends typeof Trait,
-    T9 extends typeof Trait
->(traits: [T1, T2, T3, T4, T5, T6, T7, T8, T9, TraitConfig?]): UseReturnType<T1, T2, T3, T4, T5, T6, T7, T8, T9>;
-/**
- * Implements the "use" keyword from PHP with ten `Trait` and with an optionnal config.
- *
- * @param traits A list of traits followed by a trait config at the last element.
- * @returns The class "traited"
- *
- * @annotation
- */
-export function Use<
-    T1 extends typeof Trait,
-    T2 extends typeof Trait,
-    T3 extends typeof Trait,
-    T4 extends typeof Trait,
-    T5 extends typeof Trait,
-    T6 extends typeof Trait,
-    T7 extends typeof Trait,
-    T8 extends typeof Trait,
-    T9 extends typeof Trait,
-    T10 extends typeof Trait
->(
-    traits: [T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TraitConfig?],
-): UseReturnType<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>;
-//#endregion
 /**
  * Implements the "use" keyword from PHP with a `Trait`.
  *
@@ -466,18 +269,24 @@ export function Use<
  *
  * @annotation
  */
-export function Use<T extends typeof Trait>(traits: T | Array<T | TraitConfig>) {
+export function Use<T extends Array<typeof Trait>>(...traits: [...trait: T]): UseReturnType<T>;
+// eslint-disable-next-line no-redeclare
+export function Use<T extends Array<typeof Trait>>(...traits: [...trait: T, traitConfig?: TraitConfig<T>]): UseReturnType<T>;
+// eslint-disable-next-line no-redeclare
+export function Use<T extends Array<typeof Trait>>(...traits: [...trait: T] | [...trait: T, traitConfig?: TraitConfig<T>]): UseReturnType<T> {
     return <Class extends Ctor>(clazz: Class) => {
-        if (!Array.isArray(traits)) {
-            const defaultConf: TraitConfig = {};
-            traits = [traits, defaultConf];
+        let traitConfig = traits.pop() as TraitConfig<T>;
+        const restTraits = (traits as unknown as T);
+        if (!isTraitConfig<T>(traitConfig)) {
+            restTraits.push(traitConfig)
+            traitConfig = {}
         }
-        const config = traitConfigParser(traits.pop() as TraitConfig, traits as T[], clazz);
+        const traitRules = traitConfigParser(traitConfig, restTraits, clazz);
 
         const doNotUse: { [className: string]: Array<[string, boolean]> } = {}; // className [ [prop, isStatic] ]
         const aliases: { [className: string]: Array<[string, string, boolean]> } = {}; // className [ [prop, alias, isStatic] ]
 
-        for (const rule of config) {
+        for (const rule of traitRules) {
             if (rule.rule === 'insteadof') {
                 for (const to of rule.klassTo) {
                     if (!doNotUse[to]) {
@@ -493,10 +302,10 @@ export function Use<T extends typeof Trait>(traits: T | Array<T | TraitConfig>) 
                 aliases[rule.klass].push([rule.oldName, rule.newName, rule.isStatic]);
             }
         }
-        for (const trait of traits as T[]) {
-            const filters: RegExp[] = [copyProperties.DEFAULT_FILTER];
-            const filtersStatic: RegExp[] = [copyProperties.DEFAULT_FILTER];
-            const dnu = doNotUse[trait.name] || [];
+        for (const trait of restTraits) {
+            const filters = [copyProperties.DEFAULT_FILTER];
+            const filtersStatic = [copyProperties.DEFAULT_FILTER];
+            const dnu = doNotUse[trait.name] ?? [];
 
             for (const [name, isStatic] of dnu) {
                 (isStatic ? filtersStatic : filters).push(new RegExp(name));
@@ -507,7 +316,7 @@ export function Use<T extends typeof Trait>(traits: T | Array<T | TraitConfig>) 
             copyProperties(traitClone, trait);
             copyProperties(traitProtoClone, trait.prototype);
 
-            const al = aliases[trait.name] || [];
+            const al = aliases[trait.name] ?? [];
             for (const [member, alias, isStatic] of al) {
                 if (isStatic) {
                     traitClone[alias] = traitClone[member];

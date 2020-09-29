@@ -1,24 +1,25 @@
 {
-  "name": "@bios21/tstrait",
-  "version": "1.1.0",
-  "description": "Trait is a better mixin",
+  "name": "@lsagetlethias/tstrait",
+  "version": "1.0.0",
+  "description": "Trait is better than mixin",
   "main": "trait.js",
   "types": "index.d.ts",
-  "repository": "git@github.com:bios21/trait.git",
-  "homepage": "https://github.com/bios21/trait",
+  "repository": "git@github.com:lsagetlethias/trait.git",
+  "homepage": "https://github.com/lsagetlethias/trait",
   "bugs": {
-    "url": "https://github.com/bios21/trait/issues"
+    "url": "https://github.com/lsagetlethias/trait/issues"
   },
   "author": "Lilian Saget-Lethias <lilian.sagetlethias@gmail.com>",
   "license": "MIT",
   "scripts": {
     "test": "jest",
-    "lint": "tslint trait.ts",
+    "lint": "eslint trait.ts",
     "build": "rimraf trait.js* && tsc -d trait.ts",
     "start": "ts-node example.ts"
   },
   "publishConfig": {
-    "registry": "https://registry.npmjs.org/"
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
   },
   "files": [
     "UPGRADE*",
@@ -28,15 +29,19 @@
     "trait.js"
   ],
   "devDependencies": {
+    "@lsagetlethias/eslint-config": "^1.0.0",
     "@types/jest": "^24.0.11",
     "@types/node": "^10.11.3",
     "@types/webpack": "^4.1.3",
-    "@wynd/tslint-config-wynd": "^1.5.0",
+    "@typescript-eslint/parser": "^4.3.0",
+    "eslint": "^7.10.0",
     "jest": "^24.5.0",
     "rimraf": "^3.0.0",
     "ts-jest": "^24.0.2",
     "ts-node": "^8.3.0",
-    "tslint": "^5.9.1",
-    "typescript": "^3.4.1"
+    "typescript": "^4.1.0-beta"
+  },
+  "peerDependencies": {
+    "typescript": "^4.1.0-beta | ^4.1.0"
   }
 }

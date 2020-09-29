@@ -1,9 +1,9 @@
 // tslint:disable:no-shadowed-variable
-import { Trait, traitSelector, Use, Ctor } from './trait';
+import { Ctor, Trait, traitSelector, Use } from './trait';
 
-const GETIMAGETRAIT_GETIMAGE = 'GetImageTrait.getImage';
-const COMPUTETRAIT_COMPUTE = 'ComputeTrait.compute';
-const COMPUTETRAIT_GETIMAGE = 'ComputeTrait.getImage';
+const GETIMAGETRAIT_GETIMAGE = 'GetImageTrait.getImage' as const;
+const COMPUTETRAIT_COMPUTE = 'ComputeTrait.compute' as const;
+const COMPUTETRAIT_GETIMAGE = 'ComputeTrait.getImage' as const;
 
 // Setup
 class GetImageTrait extends Trait {
@@ -13,7 +13,7 @@ class GetImageTrait extends Trait {
     public getImage(p1?: string, p2 = true) {
         return GETIMAGETRAIT_GETIMAGE;
     }
-    public fn1() { }
+    public fn1() {}
 }
 
 class ComputeTrait extends Trait {
@@ -24,6 +24,13 @@ class ComputeTrait extends Trait {
 
     public getImage() {
         return COMPUTETRAIT_GETIMAGE;
+    }
+}
+
+declare module './trait' {
+    interface TraitsRegister {
+        GetImageTrait: typeof GetImageTrait;
+        ComputeTrait: typeof ComputeTrait;
     }
 }
 
@@ -61,7 +68,10 @@ it('should works with an abstract class', () => {
 });
 
 it('should works as function decorator', () => {
-    const Controller = Use([GetImageTrait, ComputeTrait])(
+    const Controller = Use(
+        GetImageTrait,
+        ComputeTrait,
+    )(
         class Controller {
             public foo(this: Controller & GetImageTrait) {
                 return this.getImage();
@@ -97,17 +107,13 @@ describe('traitSelector()', () => {
 
 describe('Trait rules', () => {
     it('should alias a property with another', () => {
-        @Use([
-            GetImageTrait,
-            ComputeTrait,
-            {
-                as: {
-                    [traitSelector(GetImageTrait, 'S1', true)]: 'protected FOO',
-                    'GetImageTrait::S2': 'S3',
-                },
+        @Use(GetImageTrait, ComputeTrait, {
+            as: {
+                [traitSelector(GetImageTrait, 'S1', true)]: 'protected FOO',
+                'GetImageTrait::S2': 'S3',
             },
-        ])
-        class Controller { }
+        })
+        class Controller {}
 
         expect((Controller as any).S1).toBeUndefined();
         expect((Controller as any).FOO).toBe('Static1');
@@ -117,40 +123,31 @@ describe('Trait rules', () => {
 
     it('should throws when selectors are malformed', () => {
         expect(
-            Use([
-                GetImageTrait,
-                {
-                    as: {
-                        'GetImageTrait getImage': 'foo',
-                    },
+            Use(GetImageTrait, {
+                as: {
+                    'GetImageTrait getImage': 'foo',
                 },
-            ]),
+            }),
         ).toThrow(/^The selector "GetImageTrait getImage" is malformed/);
     });
 
     it('should throws when property is not found', () => {
         expect(
-            Use([
-                GetImageTrait,
-                {
-                    as: {
-                        'GetImageTrait.foo': 'bar',
-                    },
+            Use(GetImageTrait, {
+                as: {
+                    'GetImageTrait.foo': 'bar',
                 },
-            ]),
+            }),
         ).toThrow(
             'In selector "GetImageTrait.foo", the property or method "foo" was not found on the trait "GetImageTrait" prototype.',
         );
 
         expect(
-            Use([
-                GetImageTrait,
-                {
-                    as: {
-                        'GetImageTrait::foo': 'bar',
-                    },
+            Use(GetImageTrait, {
+                as: {
+                    'GetImageTrait::foo': 'bar',
                 },
-            ]),
+            }),
         ).toThrow(
             'In selector "GetImageTrait::foo", the static property or method "foo" was not found on the trait "GetImageTrait".',
         );
@@ -158,54 +155,42 @@ describe('Trait rules', () => {
 
     describe('AS', () => {
         it('should make the initial prop undefined', () => {
-            @Use([
-                GetImageTrait,
-                {
-                    as: {
-                        'GetImageTrait.getImage': 'foo',
-                    },
+            @Use(GetImageTrait, {
+                as: {
+                    'GetImageTrait.getImage': 'foo',
                 },
-            ])
-            class Controller { }
+            })
+            class Controller {}
             expect((new Controller() as any).getImage).toBeUndefined();
         });
 
         it('should work with no scope', () => {
-            @Use([
-                GetImageTrait,
-                {
-                    as: {
-                        'GetImageTrait.getImage': 'foo',
-                    },
+            @Use(GetImageTrait, {
+                as: {
+                    'GetImageTrait.getImage': 'foo',
                 },
-            ])
-            class Controller { }
+            })
+            class Controller {}
             expect((new Controller() as any).foo()).toBe(GETIMAGETRAIT_GETIMAGE);
         });
 
         it('should work with only scope', () => {
-            @Use([
-                GetImageTrait,
-                {
-                    as: {
-                        'GetImageTrait.getImage': 'public',
-                    },
+            @Use(GetImageTrait, {
+                as: {
+                    'GetImageTrait.getImage': 'public',
                 },
-            ])
-            class Controller { }
+            })
+            class Controller {}
             expect((new Controller() as any).getImage()).toBe(GETIMAGETRAIT_GETIMAGE);
         });
 
         it('should throws if scope is not known', () => {
             expect(
-                Use([
-                    GetImageTrait,
-                    {
-                        as: {
-                            'GetImageTrait.getImage': 'synchronized foo',
-                        },
+                Use(GetImageTrait, {
+                    as: {
+                        'GetImageTrait.getImage': 'synchronized foo',
                     },
-                ]),
+                }),
             ).toThrow(
                 'In the "as"-part "synchronized foo", the scope have to be one of these: public, protected, private',
             );
@@ -213,27 +198,21 @@ describe('Trait rules', () => {
 
         it('should throws if the property name is not good for JS', () => {
             expect(
-                Use([
-                    GetImageTrait,
-                    {
-                        as: {
-                            'GetImageTrait.getImage': '0foo',
-                        },
+                Use(GetImageTrait, {
+                    as: {
+                        'GetImageTrait.getImage': '0foo',
                     },
-                ]),
+                }),
             ).toThrow(/^In the "as"-part "0foo", the name "0foo" is not a valid property/);
         });
 
         it('should throws if we add more than a scope and a name', () => {
             expect(
-                Use([
-                    GetImageTrait,
-                    {
-                        as: {
-                            'GetImageTrait.getImage': 'public static foo',
-                        },
+                Use(GetImageTrait, {
+                    as: {
+                        'GetImageTrait.getImage': 'public static foo',
                     },
-                ]),
+                }),
             ).toThrow(/^The "as"-part "public static foo" is not valid/);
         });
 
@@ -244,40 +223,31 @@ describe('Trait rules', () => {
         // Can't overlap trait static method
         it('should throws if a collision with an existing prop is found', () => {
             expect(
-                Use([
-                    GetImageTrait,
-                    {
-                        as: {
-                            'GetImageTrait::INSTANCE': 'S1',
-                        },
+                Use(GetImageTrait, {
+                    as: {
+                        'GetImageTrait::INSTANCE': 'S1',
                     },
-                ]),
+                }),
             ).toThrow(
                 'Collision on "as" trait rule. "GetImageTrait.S1" (static) already exists and can\'t be overlap.',
             );
 
             // Can't overlap trait instance method
             expect(() =>
-                Use([
-                    GetImageTrait,
-                    {
-                        as: {
-                            'GetImageTrait.getImage': 'fn1',
-                        },
+                Use(GetImageTrait, {
+                    as: {
+                        'GetImageTrait.getImage': 'fn1',
                     },
-                ])(class Controller { }),
+                })(class Controller {}),
             ).toThrow('Collision on "as" trait rule. "GetImageTrait.fn1" already exists and can\'t be overlap.');
 
             // Can't overlap traited class static method
             expect(() =>
-                Use([
-                    GetImageTrait,
-                    {
-                        as: {
-                            'GetImageTrait::INSTANCE': 'FOO',
-                        },
+                Use(GetImageTrait, {
+                    as: {
+                        'GetImageTrait::INSTANCE': 'FOO',
                     },
-                ])(
+                })(
                     class Controller {
                         public static FOO = 'FOO';
                     },
@@ -286,84 +256,65 @@ describe('Trait rules', () => {
 
             // Can't overlap traited class instance method
             expect(() =>
-                Use([
-                    GetImageTrait,
-                    {
-                        as: {
-                            'GetImageTrait.getImage': 'foo',
-                        },
+                Use(GetImageTrait, {
+                    as: {
+                        'GetImageTrait.getImage': 'foo',
                     },
-                ])(
+                })(
                     class Controller {
-                        public foo() { }
+                        public foo() {}
                     },
                 ),
             ).toThrow('Collision on "as" trait rule. "Controller.foo" already exists and can\'t be overlap.');
         });
 
         it('should works with an empty config', () => {
-            @Use([
-                GetImageTrait,
-                {
-                    as: {},
-                },
-            ])
-            class Controller { }
+            @Use(GetImageTrait, {
+                as: {},
+            })
+            class Controller {}
             expect((new Controller() as any).getImage()).toBe(GETIMAGETRAIT_GETIMAGE);
         });
 
         it('should throws with an weird config', () => {
             expect(
-                Use([
-                    GetImageTrait,
-                    {
-                        as: {
-                            'GetImageTrait.getImage': null,
-                        },
+                Use(GetImageTrait, {
+                    as: {
+                        'GetImageTrait.getImage': null as any,
                     },
-                ]),
+                }),
             ).toThrow();
         });
     });
 
     describe('INSTEAD OF', () => {
         it('should replace a trait method by another from another trait', () => {
-            @Use([
-                GetImageTrait,
-                ComputeTrait,
-                {
-                    insteadOf: {
-                        'ComputeTrait.getImage': [GetImageTrait],
-                        'ComputeTrait::INSTANCE': [GetImageTrait],
-                    },
+            @Use(GetImageTrait, ComputeTrait, {
+                insteadOf: {
+                    'ComputeTrait.getImage': [GetImageTrait],
+                    'ComputeTrait::INSTANCE': [GetImageTrait],
                 },
-            ])
-            class Controller { }
+            })
+            class Controller {}
             expect((new Controller() as any).getImage()).toBe(COMPUTETRAIT_GETIMAGE);
             expect((Controller as any).INSTANCE).toBe('bar');
         });
 
         it('should works with an empty config', () => {
-            @Use([
-                GetImageTrait,
-                {
-                    insteadOf: {},
-                },
-            ])
-            class Controller { }
+            @Use(GetImageTrait, {
+                insteadOf: {},
+            })
+            class Controller {}
             expect((new Controller() as any).getImage()).toBe(GETIMAGETRAIT_GETIMAGE);
         });
 
         it('should throws with an weird config', () => {
             expect(
-                Use([
-                    GetImageTrait,
-                    {
-                        insteadOf: {
-                            'GetImageTrait.getImage': null,
-                        },
+                Use(GetImageTrait, {
+                    insteadOf: {
+                        'GetImageTrait.getImage': null as any,
                     },
-                ]),
+                }),
             ).toThrow();
         });
     });
