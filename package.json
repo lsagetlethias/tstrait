@@ -4,10 +4,10 @@
   "description": "Trait is better than mixin",
   "main": "trait.js",
   "types": "index.d.ts",
-  "repository": "git@github.com:lsagetlethias/trait.git",
-  "homepage": "https://github.com/lsagetlethias/trait",
+  "repository": "git@github.com:lsagetlethias/tstrait.git",
+  "homepage": "https://github.com/lsagetlethias/tstrait",
   "bugs": {
-    "url": "https://github.com/lsagetlethias/trait/issues"
+    "url": "https://github.com/lsagetlethias/tstrait/issues"
   },
   "author": "Lilian Saget-Lethias <lilian.sagetlethias@gmail.com>",
   "license": "MIT",
@@ -18,7 +18,6 @@
     "start": "ts-node example.ts"
   },
   "publishConfig": {
-    "registry": "https://registry.npmjs.org/",
     "access": "public"
   },
   "files": [
