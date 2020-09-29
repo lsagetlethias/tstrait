@@ -21,13 +21,16 @@ type CombinedClass<Class extends Ctor, T extends Array<typeof Trait>> = Multiple
  */
 type UseReturnType<T extends Array<typeof Trait>> = <C extends Ctor>(clazz: C) => CombinedClass<C, T>;
 
-type Scope = 'public' | 'protected' | 'private';
 type _GetTraitName<T extends typeof Trait> = { [Name in keyof TraitsRegister]: TraitsRegister[Name] extends T ? T extends TraitsRegister[Name] ? Name : never : never}[keyof TraitsRegister];
 type GetTraitName<T extends typeof Trait> = _GetTraitName<T> extends never ? string : _GetTraitName<T>;
-type Keys<T> = { [K in keyof T]: K extends string ? K extends "prototype" ? never : K : never}[keyof T];
-// eslint-disable-next-line prettier/prettier
-type StaticName<T extends typeof Trait, Name extends GetTraitName<T> = GetTraitName<T>> = `${Name}::${Keys<T>}`;
-type InstanceName<T extends typeof Trait, N extends GetTraitName<T> = GetTraitName<T>> = `${N}.${Keys<InstanceType<T>>}`;
+
+/**
+ * Scopes are WIP
+ */
+export type Scope = 'public' | 'protected' | 'private';
+export type StringKeys<T> = { [K in keyof T]: K extends string ? K extends "prototype" ? never : K : never}[keyof T];
+type StaticName<T extends typeof Trait, N extends GetTraitName<T> = GetTraitName<T>> = `${N}::${StringKeys<T>}`; // eslint-disable-line prettier/prettier
+type InstanceName<T extends typeof Trait, N extends GetTraitName<T> = GetTraitName<T>> = `${N}.${StringKeys<InstanceType<T>>}`;
 type Identifier<Traits extends Array<typeof Trait>> = Traits extends Array<infer T> ? T extends typeof Trait ? StaticName<T> | InstanceName<T> : never : never;
 
 type As<Traits extends Array<typeof Trait>, V extends string = string> =

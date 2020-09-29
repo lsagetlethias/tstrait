@@ -1,6 +1,6 @@
 {
   "name": "@lsagetlethias/tstrait",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Trait is better than mixin",
   "main": "trait.js",
   "types": "index.d.ts",
