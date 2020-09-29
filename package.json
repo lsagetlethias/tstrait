@@ -1,6 +1,6 @@
 {
   "name": "@lsagetlethias/tstrait",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Trait is better than mixin",
   "main": "trait.js",
   "types": "index.d.ts",
@@ -42,5 +42,10 @@
   },
   "peerDependencies": {
     "typescript": "^4.1.0-beta | ^4.1.0"
+  },
+  "peerDependenciesMeta": {
+    "typescript": {
+      "optional": true
+    }
   }
 }
