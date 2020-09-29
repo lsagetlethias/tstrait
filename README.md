@@ -1,4 +1,4 @@
-@bios21/tstrait
+@lsagetlethias/tstrait
 ===
 Yet another mixin library but without mixins.
 
@@ -13,9 +13,9 @@ They can be usefull in override situations.
 # Installation
 ## Node (or front)
 ```sh
-yarn add @bios21/tstrait
+yarn add @lsagetlethias/tstrait
 # or
-npm install @bios21/tstrait
+npm install @lsagetlethias/tstrait
 ```
 
 ## Deno
@@ -56,7 +56,7 @@ Due to typings issues with abstract, abstract classes cannot be traited with dec
 
 e.g.
 ```ts
-import { Use, Ctor } from '@bios21/tstrait';
+import { Use, Ctor } from '@lsagetlethias/tstrait';
 class MyTrait {}
 
 @Use(MyTrait) // Argument of type 'typeof Foo' is not assignable to parameter of type 'Ctor'. Cannot assign an abstract constructor type to a non-abstract constructor type. ts(2345)
@@ -69,16 +69,16 @@ const Bar = Use(MyTrait)(_Bar as Ctor<_Bar>); // ok
 ## Advanced
 If you need to, you can use as many trait as you want. In this case, the `@Use` will takes an array of trait as single parameter:
 ```ts
-@Use([Trait1, Trait2, Trait3 /* ... and so on */])
+@Use(Trait1, Trait2, Trait3 /* ... and so on */)
 class Foo {}
 ```
-In this case, Traits will be applied from left to right.
+In this case, Traits will be applied in array order, from left to right.
 
 Sometimes, you will also need to configure properly how your trait is applied or handle collision between multiple traits:
 ```ts
-@Use([Trait1, Trait2, {
+@Use(Trait1, Trait2, {
     as: { 'Trait1.method': 'fooBarFunction' } // The "method" from Trait1 will be aliased "fooBarFunction" before being applied to Foo class
-}])
+})
 class Foo {}
 
 (new Foo()).method(); // KO ; doesn't exists on Foo
@@ -93,9 +93,9 @@ Alias must be seen like this: `alias "Trait.member" as "scope newName"`.
 
 e.g.
 ```ts
-@Use([Trait1, {
+@Use(Trait1, {
     as: { 'Trait1.method': 'fooBarFunction' } // Alias "Trait1.method" as "fooBarFunction" when used in Foo class
-}])
+})
 class Foo {}
 
 (new Foo()).method(); // KO ; doesn't exists on Foo
@@ -105,7 +105,7 @@ class Foo {}
 ### InsteadOf
 
 With `insteadof`, you can solve collision between similar Traits.
-InsteadOf must be seen like this: `use "Trait1.method" instead of what's found in "[Trait2, Trait3, ...]"`
+InsteadOf must be seen like this: `use "Trait1.method" instead of what's found in "[Trait2, Trait3, ...]" with the same method name`
 
 e.g.
 ```ts
@@ -120,9 +120,9 @@ class Trait2 extends Trait {
     }
 }
 
-@Use([Trait1, Trait2, {
+@Use(Trait1, Trait2, {
     insteadOf: { 'Trait1.foo': [Trait2] } // Use Trait1.foo instead of the same method in Trait2
-}])
+})
 class Foo {}
 
 (new Foo()).foo(); // will log "A" instead of "B"
@@ -132,105 +132,7 @@ class Foo {}
 
 # Example
 You can run the example with the command `yarn start` (or `npm run start`)
-
-```ts
-import { Trait, traitSelector, Use } from '@bios21/tstrait';
-
-// Setup
-class GetImageTrait extends Trait {
-    public static INSTANCE = 'toto';
-    public static S1 = 'Static1';
-    public static S2 = 'Static2';
-    public getImage(p1?: string, p2 = true) {
-        console.log('GetImageTrait.getImage');
-        // i.e. make a request to retrieve an image
-        return null;
-    }
-}
-
-class ComputeTrait extends Trait {
-    public compute() {
-        // i.e. compute anything
-    }
-
-    public getImage() {
-        console.log('ComputeTrait.getImage');
-    }
-}
-
-// 1. Simple Usage
-console.log('======= EXAMPLE 1');
-@Use(GetImageTrait)
-class Controller {
-    public that = (this as unknown) as Controller & GetImageTrait;
-    public foo() {
-        this.that.getImage();
-    }
-}
-
-// ----------------
-
-const controller = new Controller();
-console.log('should log "GetImageTrait.getImage"');
-controller.foo();
-
-// 2. Function decorator usage for Intellisense
-console.log('\n\n======= EXAMPLE 2');
-const Controller2 = Use([GetImageTrait, ComputeTrait])(
-    class Controller2 {
-        public foo(this: Controller2 & GetImageTrait) {
-            this.getImage();
-        }
-    },
-);
-
-// ----------------
-
-const controller2 = new Controller2();
-console.log('should log "GetImageTrait.getImage"');
-controller2.foo();
-
-// 3 "as" & "insteadof" trait rules
-console.log('\n\n======= EXAMPLE 3');
-@Use([
-    GetImageTrait,
-    ComputeTrait,
-    {
-        as: {
-            // can use the helper method as selector
-            // scope is not handled yet
-            [traitSelector(GetImageTrait, 'INSTANCE', true)]: 'protected III',
-            'GetImageTrait::S2': 'S3',
-        },
-        insteadOf: {
-            // or do the selector ourselves (only in non-obfuscated code)
-            'ComputeTrait.getImage': [GetImageTrait],
-        },
-    },
-])
-class Controller3 {}
-
-// ----------------
-
-const controller3: any = new Controller3();
-console.log('should log undefined');
-console.log((Controller3 as any).INSTANCE); // should log undefined
-
-console.log('\n--------');
-
-console.log('should log "toto"');
-console.log((Controller3 as any).III); // should log "toto"
-
-console.log('\n--------');
-
-console.log('should log "ComputeTrait.getImage"');
-controller3.getImage(); // should log "ComputeTrait.getImage"
-
-console.log('\n--------');
-
-console.log('should log "Static2"');
-console.log((Controller3 as any).S3); // should log "Static2"
-```
+See [example file](./example.ts) 😀
 
 
 # License
